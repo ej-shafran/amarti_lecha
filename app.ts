@@ -1,4 +1,4 @@
-import express from "express";
+import express, { static as expressStatic } from "express";
 import { urlencoded } from "body-parser";
 import { twiml, Twilio } from "twilio";
 import makeConnection from "./utilities/makeConnection";
@@ -20,6 +20,7 @@ const twilioNumber = process.env.TWILIO_NUMBER;
 const app = express();
 
 app.use(urlencoded({ extended: false }));
+app.use("/", expressStatic(__dirname + "/images"));
 
 app.post("/sms", async (req: MessagingRequest, res) => {
   const { connect, query, end } = makeConnection();
@@ -29,8 +30,10 @@ app.post("/sms", async (req: MessagingRequest, res) => {
   try {
     await connect();
 
+    const request = checkRequest(req.body.Body);
+
     let messages: string[];
-    switch (checkRequest(req.body.Body)) {
+    switch (request) {
       case "REGISTER":
         messages = await registerUser(query, req.body);
         break;
@@ -47,15 +50,20 @@ app.post("/sms", async (req: MessagingRequest, res) => {
         messages = helpMessage();
         break;
     }
-    addToResponse(messages);
+    let media: string | undefined = undefined;
+    switch (request) {
+      case "WELCOME":
+        media = "/welcome_image.jpeg";
+        break;
+    }
+
+    addToResponse(messages, media);
 
     await end();
   } catch (error: any) {
     if (!error?.fatal) await end();
     console.log(error);
-    whatsappResponse.message(
-      "אני מצטער, נתקלתי בתקלה!" + "\n" + "נא נסו שנית בזמן אחר..."
-    );
+    whatsappResponse.message("אני מצטער, נתקלתי בתקלה!" + "\n" + "נא נסו שנית בזמן אחר...");
   } finally {
     res.type("text/xml").send(whatsappResponse.toString());
   }
@@ -89,9 +97,7 @@ app.listen(8080, () => {
       });
 
       if (!(todaysVictimsQuery instanceof Array))
-        throw new Error(
-          "Received a query result that isn't an array - what the fuck."
-        );
+        throw new Error("Received a query result that isn't an array - what the fuck.");
 
       const client = new Twilio(accountSid, authToken);
 
@@ -102,11 +108,7 @@ app.listen(8080, () => {
         const message = await client.messages.create({
           from: twilioNumber,
           to: victim.victimPhone,
-          body:
-            "נשלח לך מ: " +
-            victim.betterName +
-            "\n\n*אמרתי לך* ש:\n" +
-            victim.messageContent,
+          body: "נשלח לך מ: " + victim.betterName + "\n\n*אמרתי לך* ש:\n" + victim.messageContent,
         });
         console.log(message.toJSON());
       });
