@@ -5,6 +5,7 @@ To initialize the server, ensure that you have the following environment variabl
 - TWILIO_ACCOUNT_SID
 - TWILIO_AUTH_KEY
 - TWILIO_NUMBER
+- SQL_PASSWORD
 - TWILIO_JOIN_MESSAGE (optional)
 
 Then run `npm start`.

@@ -1,4 +1,5 @@
 import express, { static as expressStatic } from "express";
+
 import { urlencoded } from "body-parser";
 import { twiml, Twilio } from "twilio";
 import makeConnection from "./utilities/makeConnection";
@@ -33,6 +34,7 @@ app.post("/sms", async (req: MessagingRequest, res) => {
     const request = checkRequest(req.body.Body);
 
     let messages: string[];
+    let media: string | undefined = undefined;
     switch (request) {
       case "REGISTER":
         messages = await registerUser(query, req.body);
@@ -45,15 +47,10 @@ app.post("/sms", async (req: MessagingRequest, res) => {
         break;
       case "WELCOME":
         messages = welcomeMessage();
+        media = "/welcome_image.jpeg";
         break;
       default:
         messages = helpMessage();
-        break;
-    }
-    let media: string | undefined = undefined;
-    switch (request) {
-      case "WELCOME":
-        media = "/welcome_image.jpeg";
         break;
     }
 
